@@ -1,7 +1,7 @@
 repositories:
   mujoco_ros2_control:
     type: git
-    url: https://github.com/ros-controls/mujoco_ros2_control.git
+    url: https://github.com/dfki-ric/mujoco_ros2_control.git
     version: 0f6b44aa3bc5a4012314592e6e4a34507ad7d486
   ur_description:
     type: git

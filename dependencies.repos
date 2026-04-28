@@ -1,0 +1,9 @@
+repositories:
+  mujoco_ros2_control:
+    type: git
+    url: https://github.com/peterdavidfagan/mujoco_ros2_control.git
+    version: master
+  ur_description:
+    type: git
+    url: https://github.com/UniversalRobots/Universal_Robots_ROS2_Description.git
+    version: humble

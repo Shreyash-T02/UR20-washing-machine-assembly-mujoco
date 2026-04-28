@@ -1,0 +1,15 @@
+# ROS 2 build artifacts — never send to Docker build context
+build/
+install/
+log/
+
+# Git history is large and not needed inside the image
+.git/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db

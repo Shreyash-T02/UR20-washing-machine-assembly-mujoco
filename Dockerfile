@@ -1,11 +1,10 @@
-# Use ROS 2 Humble as the base image
 FROM osrf/ros:humble-desktop
 
-# Avoid timezone prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
+ENV ROS_WS=/ros2_ws
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# ── System tools ────────────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-colcon-common-extensions \
     python3-vcstool \
@@ -14,38 +13,48 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Initialize rosdep
-RUN rosdep init || true \
-    && rosdep update
+RUN rosdep init || true && rosdep update
 
-# Set the workspace directory
-ENV ROS_WS=/ros2_ws
 WORKDIR $ROS_WS
 
-# Copy the workspace source code
-COPY ./src src/
-COPY ./dependencies.repos .
-
-# Import external dependencies
+# ── Phase 1: fetch & build external deps (mujoco_ros2_control, ur_description)
+# These layers are cached as long as dependencies.repos doesn't change.
+# mujoco_ros2_control downloads and compiles MuJoCo 3.2.7 from source via
+# CMake FetchContent — expect ~30-60 min on first build.
+COPY dependencies.repos .
 RUN vcs import src < dependencies.repos
 
-# Install ROS package dependencies
 RUN apt-get update && rosdep install -y \
     --from-paths src \
     --ignore-src \
     --rosdistro humble \
     && rm -rf /var/lib/apt/lists/*
 
-# Build the workspace
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
+RUN /bin/bash -c "\
+    source /opt/ros/humble/setup.bash && \
+    colcon build --symlink-install \
+      --packages-skip wm_ur20_description wm_bringup \
+                      wm_cell_description wm_kinematics wm_assembly_ctrl"
 
-# Create an entrypoint to source setup scripts automatically
-RUN echo '#!/bin/bash' > /ros_entrypoint.sh \
-    && echo 'set -e' >> /ros_entrypoint.sh \
-    && echo 'source /opt/ros/humble/setup.bash' >> /ros_entrypoint.sh \
-    && echo 'source $ROS_WS/install/setup.bash' >> /ros_entrypoint.sh \
-    && echo 'exec "$@"' >> /ros_entrypoint.sh \
-    && chmod +x /ros_entrypoint.sh
+# ── Phase 2: build our packages (fast — only invalidated when ./src changes)
+COPY ./src src/
+
+RUN apt-get update && rosdep install -y \
+    --from-paths src \
+    --ignore-src \
+    --rosdistro humble \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN /bin/bash -c "\
+    source /opt/ros/humble/setup.bash && \
+    source install/setup.bash && \
+    colcon build --symlink-install \
+      --packages-select wm_ur20_description wm_bringup \
+                        wm_cell_description wm_kinematics wm_assembly_ctrl"
+
+# ── Entrypoint ───────────────────────────────────────────────────────────────
+COPY docker/entrypoint.sh /ros_entrypoint.sh
+RUN chmod +x /ros_entrypoint.sh
 
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]

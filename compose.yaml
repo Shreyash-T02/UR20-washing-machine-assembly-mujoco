@@ -1,27 +1,23 @@
-version: '3.8'
-
 services:
   ur20_assembly:
     build: .
     image: ur20_assembly_ws:latest
     container_name: ur20_assembly_sim
-    # Privileged mode is often required for some GUI/hardware acceleration features
+    # Required for /dev access and some hardware acceleration paths
     privileged: true
-    # Required to pass X11 display for RViz and MuJoCo
     environment:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
+      # NVIDIA: set automatically when nvidia-container-toolkit is installed.
+      # Remove these two lines if you don't have an NVIDIA GPU.
       - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
     volumes:
-      # Mount X11 socket
+      # X11 socket for GUI windows (MuJoCo viewer, RViz2)
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      # Uncomment the following line to mount your local src directory into the container
-      # This allows you to edit code locally and test it without rebuilding the image
+      # Uncomment to mount local src for live development (no image rebuild needed)
       # - ./src:/ros2_ws/src:rw
     network_mode: host
-    # Prevent container from exiting immediately
     tty: true
     stdin_open: true
-    # Default command when running `docker compose up`
-    command: bash -c "source /ros2_ws/install/setup.bash && ros2 launch wm_bringup ur20_mujoco.launch.py"
+    command: ros2 launch wm_bringup ur20_mujoco.launch.py

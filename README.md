@@ -43,7 +43,7 @@ docker compose up
 
 ## 🛠️ Making Changes (Development Guide)
 
-If you are a teammate working on this codebase, you don't want to rebuild the Docker image every time you edit a python script or launch file.
+If you are a working on this codebase, you don't want to rebuild the Docker image every time you edit a python script or launch file.
 
 Here is the standard workflow to develop inside the container:
 

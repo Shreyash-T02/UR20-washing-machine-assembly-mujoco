@@ -1,7 +1,7 @@
 repositories:
   mujoco_ros2_control:
     type: git
-    url: https://github.com/peterdavidfagan/mujoco_ros2_control.git
+    url: https://github.com/ros-controls/mujoco_ros2_control.git
     version: master
   ur_description:
     type: git

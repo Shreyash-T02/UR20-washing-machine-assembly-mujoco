@@ -35,24 +35,19 @@ RUN apt-get update && rosdep install -y \
 RUN /bin/bash -c "\
     source /opt/ros/humble/setup.bash && \
     colcon build --symlink-install \
-      --packages-up-to mujoco_ros2_control ur_description"
+      --packages-up-to mujoco_ros2_control ur_description && \
+    rm -rf build/ log/"
 
 # ── Phase 2: build our packages (fast — only invalidated when ./src changes)
 COPY ./src src/
-
-RUN apt-get update && rosdep install -y \
-    --from-paths src/wm_ur20_description src/wm_bringup \
-                 src/wm_cell_description src/wm_kinematics src/wm_assembly_ctrl \
-    --ignore-src \
-    --rosdistro humble \
-    && rm -rf /var/lib/apt/lists/*
 
 RUN /bin/bash -c "\
     source /opt/ros/humble/setup.bash && \
     source install/setup.bash && \
     colcon build --symlink-install \
       --packages-select wm_ur20_description wm_bringup \
-                        wm_cell_description wm_kinematics wm_assembly_ctrl"
+                        wm_cell_description wm_kinematics wm_assembly_ctrl && \
+    rm -rf build/ log/"
 
 # ── Entrypoint ───────────────────────────────────────────────────────────────
 COPY docker/entrypoint.sh /ros_entrypoint.sh

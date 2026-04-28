@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-rosdep \
     git \
     wget \
+    ros-humble-ros2-controllers \
     && rm -rf /var/lib/apt/lists/*
 
 RUN rosdep init || true && rosdep update

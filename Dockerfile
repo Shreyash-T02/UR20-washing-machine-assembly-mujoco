@@ -24,8 +24,10 @@ WORKDIR $ROS_WS
 COPY dependencies.repos .
 RUN mkdir -p src && vcs import src < dependencies.repos
 
+# Scope rosdep to only the packages we build — the dfki-ric fork includes demo
+# packages (unitree_h1_mujoco, franka_mujoco, etc.) with deps not in rosdep.
 RUN apt-get update && rosdep install -y \
-    --from-paths src \
+    --from-paths src/mujoco_ros2_control/mujoco_ros2_control src/ur_description \
     --ignore-src \
     --rosdistro humble \
     && rm -rf /var/lib/apt/lists/*
@@ -33,14 +35,14 @@ RUN apt-get update && rosdep install -y \
 RUN /bin/bash -c "\
     source /opt/ros/humble/setup.bash && \
     colcon build --symlink-install \
-      --packages-skip wm_ur20_description wm_bringup \
-                      wm_cell_description wm_kinematics wm_assembly_ctrl"
+      --packages-up-to mujoco_ros2_control ur_description"
 
 # ── Phase 2: build our packages (fast — only invalidated when ./src changes)
 COPY ./src src/
 
 RUN apt-get update && rosdep install -y \
-    --from-paths src \
+    --from-paths src/wm_ur20_description src/wm_bringup \
+                 src/wm_cell_description src/wm_kinematics src/wm_assembly_ctrl \
     --ignore-src \
     --rosdistro humble \
     && rm -rf /var/lib/apt/lists/*

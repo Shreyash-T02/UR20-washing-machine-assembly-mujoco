@@ -22,7 +22,7 @@ WORKDIR $ROS_WS
 # mujoco_ros2_control downloads and compiles MuJoCo 3.2.7 from source via
 # CMake FetchContent — expect ~30-60 min on first build.
 COPY dependencies.repos .
-RUN vcs import src < dependencies.repos
+RUN mkdir -p src && vcs import src < dependencies.repos
 
 RUN apt-get update && rosdep install -y \
     --from-paths src \

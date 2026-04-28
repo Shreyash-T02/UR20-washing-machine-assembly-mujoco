@@ -22,7 +22,7 @@ To ensure consistency across development environments and avoid installation hea
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repository-url> wm_assembly_ws
+git clone https://github.com/Shreyash-T02/UR20-washing-machine-assembly-mujoco.git wm_assembly_ws
 cd wm_assembly_ws
 ```
 

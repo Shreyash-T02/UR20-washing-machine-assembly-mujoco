@@ -11,8 +11,8 @@ ROS 2 Humble workspace for simulating a **Universal Robots UR20** manipulator pe
 | 0 | Workspace setup, mesh conversion, MJCF hand-tuning | Done |
 | 1 | MuJoCo model: smooth joint control, gain tuning | Done |
 | 2 | ROS 2 bridge: `/joint_states`, trajectory controller, RViz | Done |
-| 3 | FK / IK / Jacobian nodes | Planned |
-| 4 | Cell environment (table, washer model) | Planned |
+| 3 | FK / IK / Jacobian nodes | Done |
+| 4 | Cell environment: pillar, table, conveyor belt | Done |
 | 5 | Gripper | Planned |
 | 6 | Assembly state machine | Planned |
 
@@ -114,6 +114,119 @@ ros2 topic pub -t 3 /ur20_joint_trajectory_controller/joint_trajectory \
 
 ---
 
+## Testing the Kinematics Nodes (Phase 3)
+
+Three nodes start automatically 7 seconds after launch:
+
+| Node | Subscribes | Publishes |
+|------|-----------|-----------|
+| `fk_node` | `/joint_states` | `/fk/ee_pose` (PoseStamped, frame `world`) |
+| `jacobian_node` | `/joint_states` | `/kinematics/jacobian` (Float64MultiArray 6×6), `/kinematics/manipulability` (Float64) |
+| `ik_node` | `/ik/target_pose` (PoseStamped), `/joint_states` | `/ur20_joint_trajectory_controller/joint_trajectory` |
+
+Open a terminal inside the container:
+
+```bash
+docker exec -it ur20_assembly_sim bash
+source /opt/ros/humble/setup.bash && source install/setup.bash
+```
+
+### Check all three nodes are running
+
+```bash
+ros2 node list | grep -E "fk|jacobian|ik"
+# Expected output:
+# /fk_node
+# /jacobian_node
+# /ik_node
+```
+
+> **Note:** nodes start after a 7-second delay — if you check immediately after launch they may not appear yet.
+
+---
+
+### Test 1 — FK node
+
+Watch the live end-effector pose in the world frame:
+
+```bash
+ros2 topic echo /fk/ee_pose
+```
+
+Move the robot (see Test 3 below) and watch the position update. To cross-check against TF2:
+
+```bash
+ros2 run tf2_ros tf2_echo world wrist_3_link
+```
+
+The `translation` values should match `/fk/ee_pose` position within ~1 mm.
+
+---
+
+### Test 2 — Jacobian node
+
+```bash
+# Scalar manipulability index (0 = singular, larger = better conditioned)
+ros2 topic echo /kinematics/manipulability
+
+# Full 6x6 Jacobian (36 floats, row-major)
+ros2 topic echo /kinematics/jacobian
+```
+
+Move the robot to different configurations and watch the manipulability change. When the arm is nearly fully extended the value drops toward zero.
+
+---
+
+### Test 3 — IK node (robot moves)
+
+Send a Cartesian target pose — the robot moves to it automatically:
+
+```bash
+# Target 1 — reach forward-left at mid height
+ros2 topic pub -t 3 /ik/target_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: 'world'}, pose: {position: {x: 0.4, y: -0.3, z: 1.2}, orientation: {x: 0.0, y: 0.707, z: 0.0, w: 0.707}}}"
+```
+
+Watch the `docker compose up` log for:
+```
+[ik_node]: IK converged in X iters, pos_err=Y mm
+```
+
+Try more positions:
+
+```bash
+# Target 2 — reach straight forward, high up
+ros2 topic pub -t 3 /ik/target_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: 'world'}, pose: {position: {x: 0.8, y: 0.0, z: 1.5}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+
+# Target 3 — reach to the side
+ros2 topic pub -t 3 /ik/target_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: 'world'}, pose: {position: {x: 0.2, y: 0.6, z: 1.8}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+
+# Target 4 — low position, angled down
+ros2 topic pub -t 3 /ik/target_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: 'world'}, pose: {position: {x: 0.5, y: -0.4, z: 0.8}, orientation: {x: 0.0, y: 0.707, z: 0.0, w: 0.707}}}"
+```
+
+**IK workspace limits:** UR20 reach is ~2.6 m. Keep targets within `x²+y²+z² < 2.5²` and `z > 0.3` to stay reachable.
+
+**Important:** always use `-t 3` instead of `--once` when publishing to `/ik/target_pose`. ROS 2's VOLATILE QoS means a single `--once` message is sometimes missed if the subscriber hasn't completed DDS discovery yet.
+
+---
+
+### Test 4 — Round-trip validation (FK → IK → FK)
+
+Move the robot to a known pose, capture the FK output, feed it back as an IK target — the robot should not move (it's already there):
+
+```bash
+# Step 1: move to a position using direct JTC command
+ros2 topic pub -t 3 /ur20_joint_trajectory_controller/joint_trajectory trajectory_msgs/msg/JointTrajectory "{joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint], points: [{positions: [0.3, -1.2, 0.8, -0.5, 0.5, 0.2], velocities: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], time_from_start: {sec: 3, nanosec: 0}}]}"
+
+# Step 2: read the FK pose
+ros2 topic echo /fk/ee_pose --once
+
+# Step 3: feed that pose back to the IK — robot should stay still
+# (paste the position/orientation values from Step 2)
+```
+
+---
+
 ## Making Changes Without Rebuilding (Development Workflow)
 
 For day-to-day editing you don't need to rebuild the image. Instead, mount your local `src/` into the running container:
@@ -172,7 +285,13 @@ ros2 launch wm_bringup ur20_mujoco.launch.py
 **Arm doesn't move when I send a trajectory**
 - Confirm controllers are `[active]`: `ros2 control list_controllers`
 - Use `-t 3` instead of `--once` when publishing — the single VOLATILE message is often missed during DDS discovery.
-- Wait at least 5 seconds after launch before sending commands (controller spawner has a 5 s delay).
+- Wait at least 7 seconds after launch before sending IK commands (controller spawner: 5 s, kinematics nodes: 7 s).
+- Put the entire `ros2 topic pub` command on **one line** — shell line-breaks inside a quoted YAML string cause silent parse errors.
+
+**IK node receives the target but robot doesn't move**
+- Echo `/ur20_joint_trajectory_controller/joint_trajectory` while sending the IK target to confirm the node is publishing.
+- Verify the trajectory has `velocities` set — the JTC may silently reject points without them.
+- The trajectory `header.stamp` must be zero (let JTC decide start time); a non-zero stamp is treated as an absolute start time and can be rejected.
 
 **`colcon build` fails inside the container with linker errors**
 - This usually means the base `mujoco_ros2_control` layer compiled against a different MuJoCo than expected. Rebuild from scratch: `docker compose build --no-cache`.

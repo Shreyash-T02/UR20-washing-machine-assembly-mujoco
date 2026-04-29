@@ -7,6 +7,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
+from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from builtin_interfaces.msg import Duration
 
@@ -24,14 +25,23 @@ _ORI_TOL = 1e-2   # ~0.57 deg
 class IKNode(Node):
     def __init__(self):
         super().__init__('ik_node')
-        self._q = np.zeros(6)
+        # Seed from actual robot state; fallback is home pose (shoulder_lift = -π/2)
+        self._q = np.array([0.0, -1.5708, 0.0, 0.0, 0.0, 0.0])
         self._pub = self.create_publisher(
             JointTrajectory,
             '/ur20_joint_trajectory_controller/joint_trajectory',
             10,
         )
+        self.create_subscription(JointState, '/joint_states', self._js_cb, 10)
         self.create_subscription(PoseStamped, '/ik/target_pose', self._target_cb, 10)
         self.get_logger().info('IK node ready')
+
+    def _js_cb(self, msg: JointState):
+        name_to_pos = dict(zip(msg.name, msg.position))
+        try:
+            self._q = np.array([name_to_pos[n] for n in JOINT_NAMES])
+        except KeyError:
+            pass
 
     def _target_cb(self, msg: PoseStamped):
         p = msg.pose.position
@@ -80,6 +90,7 @@ class IKNode(Node):
         traj.joint_names = JOINT_NAMES
         pt = JointTrajectoryPoint()
         pt.positions = q.tolist()
+        pt.velocities = [0.0] * 6
         pt.time_from_start = Duration(sec=2, nanosec=0)
         traj.points = [pt]
         self._pub.publish(traj)

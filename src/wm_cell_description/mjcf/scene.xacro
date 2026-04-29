@@ -1,0 +1,277 @@
+<?xml version="1.0"?>
+<!--
+  Assembly-cell scene — processed with Xacro, output to /tmp/wm_assembly_scene.xml at launch time.
+
+  ╔════════════════════════════════════════════════════════════════════╗
+  ║  CONFIGURABLE DIMENSIONS  ← edit only this block                  ║
+  ║  Change any property once and the whole scene updates at launch.  ║
+  ╚════════════════════════════════════════════════════════════════════╝
+-->
+<mujoco model="ur20_assembly_cell" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Absolute path to wm_ur20_description/meshes — injected by launch file -->
+  <xacro:arg name="meshdir"
+    default="/ros2_ws/install/wm_ur20_description/share/wm_ur20_description/meshes"/>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       CONFIGURABLE DIMENSIONS
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <!-- Robot mount pillar (square cross-section, robot base sits on top) -->
+  <xacro:property name="pillar_half_side" value="0.25"/>  <!-- m — half width of each face -->
+  <xacro:property name="pillar_h"         value="0.90"/>  <!-- m — floor to robot base -->
+
+  <!-- Work table (placed on the +Y side of the pillar) -->
+  <xacro:property name="table_l"     value="1.20"/>  <!-- m — full length along X -->
+  <xacro:property name="table_w"     value="0.60"/>  <!-- m — full depth  along Y -->
+  <xacro:property name="table_h"     value="0.90"/>  <!-- m — floor to table surface -->
+  <xacro:property name="table_top_t" value="0.04"/>  <!-- m — tabletop thickness -->
+  <xacro:property name="table_leg_r" value="0.03"/>  <!-- m — leg cylinder radius -->
+
+  <!-- Conveyor belt (runs in front of robot on the −Y side) -->
+  <xacro:property name="conv_l"       value="4.00"/>  <!-- m — visible belt length along X -->
+  <xacro:property name="conv_w"       value="0.90"/>  <!-- m — belt width along Y -->
+  <xacro:property name="conv_h"       value="0.50"/>  <!-- m — floor to belt surface -->
+  <xacro:property name="conv_leg_r"   value="0.04"/>  <!-- m — support leg radius -->
+  <xacro:property name="conv_frame_t" value="0.03"/>  <!-- m — side-rail half-thickness -->
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       DERIVED LAYOUT  (computed — do not edit)
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <xacro:property name="table_cy" value="${pillar_half_side + 0.10 + table_w/2}"/>
+  <xacro:property name="conv_cy"  value="${-(pillar_half_side + 0.20 + conv_w/2)}"/>
+
+  <xacro:property name="tleg_ox" value="${table_l/2 - table_leg_r - 0.02}"/>
+  <xacro:property name="tleg_oy" value="${table_w/2 - table_leg_r - 0.02}"/>
+  <xacro:property name="tleg_h"  value="${table_h - table_top_t}"/>
+
+  <xacro:property name="cleg_ox" value="${conv_l/2 - conv_leg_r - 0.05}"/>
+  <xacro:property name="cleg_oy" value="${conv_w/2 - conv_leg_r - 0.02}"/>
+  <xacro:property name="cleg_h"  value="${conv_h - conv_frame_t}"/>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       MUJOCO GLOBAL SETTINGS
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <compiler angle="radian" meshdir="$(arg meshdir)" autolimits="true"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+
+  <visual>
+    <headlight ambient="0.35 0.35 0.35" diffuse="0.7 0.7 0.7" specular="0.5 0.5 0.5"/>
+    <quality shadowsize="2048"/>
+  </visual>
+
+  <asset>
+    <mesh name="base_col"     file="collision/base.stl"/>
+    <mesh name="shoulder_col" file="collision/shoulder.stl"/>
+    <mesh name="upperarm_col" file="collision/upperarm.stl"/>
+    <mesh name="forearm_col"  file="collision/forearm.stl"/>
+    <mesh name="wrist1_col"   file="collision/wrist1.stl"/>
+    <mesh name="wrist2_col"   file="collision/wrist2.stl"/>
+    <mesh name="wrist3_col"   file="collision/wrist3.stl"/>
+    <mesh name="base_vis"     file="visual/base.obj"/>
+    <mesh name="shoulder_vis" file="visual/shoulder.obj"/>
+    <mesh name="upperarm_vis" file="visual/upperarm.obj"/>
+    <mesh name="forearm_vis"  file="visual/forearm.obj"/>
+    <mesh name="wrist1_vis"   file="visual/wrist1.obj"/>
+    <mesh name="wrist2_vis"   file="visual/wrist2.obj"/>
+    <mesh name="wrist3_vis"   file="visual/wrist3.obj"/>
+
+    <material name="ur_metal"   rgba="0.27 0.27 0.27 1" specular="0.85" shininess="0.75" reflectance="0.10"/>
+    <material name="ur_link"    rgba="0.33 0.33 0.33 1" specular="0.70" shininess="0.60" reflectance="0.05"/>
+    <material name="floor_mat"  rgba="0.45 0.45 0.45 1" specular="0.10" shininess="0.10"/>
+    <material name="pillar_mat" rgba="0.50 0.50 0.55 1" specular="0.60" shininess="0.50"/>
+    <material name="table_mat"  rgba="0.80 0.72 0.58 1" specular="0.30" shininess="0.40"/>
+    <material name="frame_mat"  rgba="0.35 0.35 0.40 1" specular="0.50" shininess="0.40"/>
+    <material name="belt_mat"   rgba="0.12 0.12 0.12 1" specular="0.20" shininess="0.20"/>
+  </asset>
+
+  <contact>
+    <exclude body1="world"          body2="shoulder_link"/>
+    <exclude body1="shoulder_link"  body2="upper_arm_link"/>
+    <exclude body1="upper_arm_link" body2="forearm_link"/>
+    <exclude body1="forearm_link"   body2="wrist_1_link"/>
+    <exclude body1="wrist_1_link"   body2="wrist_2_link"/>
+    <exclude body1="wrist_2_link"   body2="wrist_3_link"/>
+  </contact>
+
+  <worldbody>
+
+    <light name="key"  pos="2 -2 4"  dir="-0.4 0.4 -1"  diffuse="0.8 0.8 0.8"    specular="0.4 0.4 0.4"   castshadow="true"/>
+    <light name="fill" pos="-3  2 3" dir="0.5 -0.3 -1"  diffuse="0.35 0.35 0.35" specular="0.1 0.1 0.1"   castshadow="false"/>
+
+    <geom name="floor" type="plane" size="8 8 0.1" material="floor_mat" contype="1" conaffinity="1"/>
+
+    <!-- ════════════════════════════════════════
+         ROBOT MOUNT PILLAR
+         Robot base at Z = pillar_h; shoulder at Z = pillar_h + 0.2363 (d1 of UR20).
+         To change height: edit pillar_h above.
+         ════════════════════════════════════════ -->
+    <geom name="pillar"
+          type="box"
+          pos="0 0 ${pillar_h/2}"
+          size="${pillar_half_side} ${pillar_half_side} ${pillar_h/2}"
+          material="pillar_mat" contype="1" conaffinity="1"/>
+
+    <geom name="base_vis"
+          pos="0 0 ${pillar_h}" quat="-1 0 0 0"
+          type="mesh" mesh="base_vis"
+          group="0" material="ur_metal" contype="0" conaffinity="0"/>
+    <geom name="base_col"
+          pos="0 0 ${pillar_h}" quat="-1 0 0 0"
+          type="mesh" mesh="base_col"
+          group="3" contype="1" conaffinity="1"/>
+
+    <!-- ════════════════════════════════════════
+         UR20 ARM
+         ════════════════════════════════════════ -->
+    <body name="shoulder_link" pos="0 0 ${pillar_h + 0.2363}" quat="0 0 0 1">
+      <inertial pos="0 -0.0062 -0.061" quat="0.843524 0.480626 0.117639 -0.208871"
+                mass="16.343" diaginertia="0.0887394 0.0883735 0.0720472"/>
+      <joint name="shoulder_pan_joint"  pos="0 0 0" axis="0 0 1"
+             range="-6.28319 6.28319" actuatorfrcrange="-738 738" armature="0.1" damping="500"/>
+      <geom name="shoulder_vis" type="mesh" mesh="shoulder_vis" group="0" material="ur_metal" contype="0" conaffinity="0"/>
+      <geom name="shoulder_col" type="mesh" mesh="shoulder_col" group="3" contype="1" conaffinity="1"/>
+
+      <body name="upper_arm_link" quat="0.707107 0.707107 0 0">
+        <inertial pos="-0.3394 0 0.2098" quat="0.502566 0.497435 0.496798 0.503168"
+                  mass="29.632" diaginertia="4.6659 4.63539 0.146106"/>
+        <joint name="shoulder_lift_joint" pos="0 0 0" axis="0 0 1"
+               range="-6.28319 6.28319" actuatorfrcrange="-738 738" armature="0.1" damping="500"/>
+        <geom name="upperarm_vis" pos="0 0 0.26" quat="0.5 0.5 -0.5 -0.5" type="mesh" mesh="upperarm_vis" group="0" material="ur_link" contype="0" conaffinity="0"/>
+        <geom name="upperarm_col" pos="0 0 0.26" quat="0.5 0.5 -0.5 -0.5" type="mesh" mesh="upperarm_col" group="3" contype="1" conaffinity="1"/>
+
+        <body name="forearm_link" pos="-0.862 0 0">
+          <inertial pos="-0.4053 0 0.0604" quat="0.510462 0.48933 0.490588 0.509223"
+                    mass="7.879" diaginertia="0.75763 0.754423 0.0249668"/>
+          <joint name="elbow_joint" pos="0 0 0" axis="0 0 1"
+                 range="-3.14159 3.14159" actuatorfrcrange="-433 433" armature="0.1" damping="300"/>
+          <geom name="forearm_vis" pos="0 0 0.043" quat="0.5 0.5 -0.5 -0.5" type="mesh" mesh="forearm_vis" group="0" material="ur_link" contype="0" conaffinity="0"/>
+          <geom name="forearm_col" pos="0 0 0.043" quat="0.5 0.5 -0.5 -0.5" type="mesh" mesh="forearm_col" group="3" contype="1" conaffinity="1"/>
+
+          <body name="wrist_1_link" pos="-0.7287 0 0.201">
+            <inertial pos="0 -0.0393 -0.0026" quat="0.989529 0.121355 0.0147064 -0.0767408"
+                      mass="3.054" diaginertia="0.00555247 0.00545771 0.00392982"/>
+            <joint name="wrist_1_joint" pos="0 0 0" axis="0 0 1"
+                   range="-6.28319 6.28319" armature="0.05" damping="80"/>
+            <geom name="wrist1_vis" pos="0 0 -0.0775" quat="0.707107 0.707107 0 0" type="mesh" mesh="wrist1_vis" group="0" material="ur_metal" contype="0" conaffinity="0"/>
+            <geom name="wrist1_col" pos="0 0 -0.0775" quat="0.707107 0.707107 0 0" type="mesh" mesh="wrist1_col" group="3" contype="1" conaffinity="1"/>
+
+            <body name="wrist_2_link" pos="0 -0.1593 0" quat="0.707107 0.707107 0 0">
+              <inertial pos="0 0.0379 -0.0024" quat="0.489074 -0.0502817 0.102168 0.864777"
+                        mass="3.126" diaginertia="0.00586894 0.00585713 0.00418393"/>
+              <joint name="wrist_2_joint" pos="0 0 0" axis="0 0 1"
+                     range="-6.28319 6.28319" armature="0.05" damping="80"/>
+              <geom name="wrist2_vis" pos="0 0 -0.0749" quat="1 0 0 0" type="mesh" mesh="wrist2_vis" group="0" material="ur_metal" contype="0" conaffinity="0"/>
+              <geom name="wrist2_col" pos="0 0 -0.0749" quat="1 0 0 0" type="mesh" mesh="wrist2_col" group="3" contype="1" conaffinity="1"/>
+
+              <body name="wrist_3_link" pos="0 0.1543 0" quat="0.707107 -0.707107 0 0">
+                <inertial pos="0 0 -0.0293" quat="0.5 0.5 -0.5 0.5"
+                          mass="0.926" diaginertia="0.00117 0.00092 0.00091"/>
+                <joint name="wrist_3_joint" pos="0 0 0" axis="0 0 1"
+                       range="-6.28319 6.28319" armature="0.05" damping="40"/>
+                <geom name="wrist3_vis" pos="0 0 -0.07" quat="0.707107 0.707107 0 0" type="mesh" mesh="wrist3_vis" group="0" material="ur_metal" contype="0" conaffinity="0"/>
+                <geom name="wrist3_col" pos="0 0 -0.07" quat="0.707107 0.707107 0 0" type="mesh" mesh="wrist3_col" group="3" contype="1" conaffinity="1"/>
+                <site name="ee_site" pos="0 0 0" size="0.01" rgba="1 0 0 1"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- ════════════════════════════════════════
+         WORK TABLE  (+Y side of pillar)
+         To change size: edit table_l / table_w / table_h above.
+         ════════════════════════════════════════ -->
+    <geom name="table_leg_xp_yn" type="cylinder"
+          pos="${tleg_ox}  ${table_cy - tleg_oy} ${tleg_h/2}"
+          size="${table_leg_r} ${tleg_h/2}" material="table_mat" contype="1" conaffinity="1"/>
+    <geom name="table_leg_xp_yp" type="cylinder"
+          pos="${tleg_ox}  ${table_cy + tleg_oy} ${tleg_h/2}"
+          size="${table_leg_r} ${tleg_h/2}" material="table_mat" contype="1" conaffinity="1"/>
+    <geom name="table_leg_xn_yn" type="cylinder"
+          pos="${-tleg_ox} ${table_cy - tleg_oy} ${tleg_h/2}"
+          size="${table_leg_r} ${tleg_h/2}" material="table_mat" contype="1" conaffinity="1"/>
+    <geom name="table_leg_xn_yp" type="cylinder"
+          pos="${-tleg_ox} ${table_cy + tleg_oy} ${tleg_h/2}"
+          size="${table_leg_r} ${tleg_h/2}" material="table_mat" contype="1" conaffinity="1"/>
+    <geom name="table_top"
+          type="box"
+          pos="0 ${table_cy} ${table_h - table_top_t/2}"
+          size="${table_l/2} ${table_w/2} ${table_top_t/2}"
+          material="table_mat" contype="1" conaffinity="1"/>
+
+    <!-- ════════════════════════════════════════
+         CONVEYOR BELT  (−Y side of pillar)
+         To change size: edit conv_l / conv_w / conv_h above.
+         Belt direction: +X = forward (towards human station); −X = return.
+         Control via /conveyor_velocity_controller/commands (Float64MultiArray, m/s).
+         Note: the belt_surface body drifts along X during operation. The belt geom
+         is 8× conv_l so the visible area stays covered for ~3 min at 0.5 m/s.
+         ════════════════════════════════════════ -->
+
+    <!-- Support legs (4 corners) -->
+    <geom name="conv_leg_xp_yn" type="cylinder"
+          pos="${cleg_ox}  ${conv_cy - cleg_oy} ${cleg_h/2}"
+          size="${conv_leg_r} ${cleg_h/2}" material="frame_mat" contype="1" conaffinity="1"/>
+    <geom name="conv_leg_xp_yp" type="cylinder"
+          pos="${cleg_ox}  ${conv_cy + cleg_oy} ${cleg_h/2}"
+          size="${conv_leg_r} ${cleg_h/2}" material="frame_mat" contype="1" conaffinity="1"/>
+    <geom name="conv_leg_xn_yn" type="cylinder"
+          pos="${-cleg_ox} ${conv_cy - cleg_oy} ${cleg_h/2}"
+          size="${conv_leg_r} ${cleg_h/2}" material="frame_mat" contype="1" conaffinity="1"/>
+    <geom name="conv_leg_xn_yp" type="cylinder"
+          pos="${-cleg_ox} ${conv_cy + cleg_oy} ${cleg_h/2}"
+          size="${conv_leg_r} ${cleg_h/2}" material="frame_mat" contype="1" conaffinity="1"/>
+
+    <!-- Side rails -->
+    <geom name="conv_rail_yn"
+          type="box"
+          pos="0 ${conv_cy - conv_w/2 + conv_frame_t/2} ${conv_h - conv_frame_t/2}"
+          size="${conv_l/2} ${conv_frame_t/2} ${conv_frame_t/2}"
+          material="frame_mat" contype="1" conaffinity="1"/>
+    <geom name="conv_rail_yp"
+          type="box"
+          pos="0 ${conv_cy + conv_w/2 - conv_frame_t/2} ${conv_h - conv_frame_t/2}"
+          size="${conv_l/2} ${conv_frame_t/2} ${conv_frame_t/2}"
+          material="frame_mat" contype="1" conaffinity="1"/>
+
+    <!-- Belt surface body — slides along X axis, drags objects via friction -->
+    <body name="belt_surface" pos="0 ${conv_cy} ${conv_h}">
+      <joint name="belt_slide" type="slide" axis="1 0 0"
+             range="-100 100" damping="50"/>
+      <geom name="belt_geom"
+            type="box"
+            size="${conv_l * 4} ${conv_w/2 - conv_frame_t} 0.005"
+            material="belt_mat"
+            friction="1.5 0.05 0.01"
+            condim="4"
+            contype="1" conaffinity="1"/>
+    </body>
+
+  </worldbody>
+
+  <!-- ════════════════════════════════════════
+       ACTUATORS
+       ════════════════════════════════════════ -->
+  <actuator>
+    <!-- kv=0 required: MujocoSystem classifies by biasprm[2]==0 → POSITION type -->
+    <position name="shoulder_pan"  joint="shoulder_pan_joint"  kp="12000" ctrlrange="-6.28319 6.28319"/>
+    <position name="shoulder_lift" joint="shoulder_lift_joint" kp="12000" ctrlrange="-6.28319 6.28319"/>
+    <position name="elbow"         joint="elbow_joint"         kp="8000"  ctrlrange="-3.14159 3.14159"/>
+    <position name="wrist_1"       joint="wrist_1_joint"       kp="3000"  ctrlrange="-6.28319 6.28319"/>
+    <position name="wrist_2"       joint="wrist_2_joint"       kp="3000"  ctrlrange="-6.28319 6.28319"/>
+    <position name="wrist_3"       joint="wrist_3_joint"       kp="1500"  ctrlrange="-6.28319 6.28319"/>
+
+    <!-- Belt: velocity-controlled (m/s).  +X = forward toward human station. -->
+    <velocity name="belt_motor" joint="belt_slide" kv="2000" ctrlrange="-1.0 1.0"/>
+  </actuator>
+
+  <!-- 7 values: 6 arm joints + belt_slide (0 = parked at start) -->
+  <keyframe>
+    <key name="home" qpos="0 -1.5708 0 0 0 0 0" ctrl="0 -1.5708 0 0 0 0 0"/>
+  </keyframe>
+
+</mujoco>

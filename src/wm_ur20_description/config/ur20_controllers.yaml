@@ -8,6 +8,15 @@ controller_manager:
     ur20_joint_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
+    conveyor_velocity_controller:
+      type: forward_command_controller/ForwardCommandController
+
+conveyor_velocity_controller:
+  ros__parameters:
+    joints:
+      - belt_slide
+    interface_name: velocity
+
 ur20_joint_trajectory_controller:
   ros__parameters:
     joints:

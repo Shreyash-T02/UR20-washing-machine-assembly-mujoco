@@ -55,6 +55,13 @@
         <state_interface name="effort"/>
       </joint>
 
+      <!-- Conveyor belt slide joint — velocity command, position/velocity state -->
+      <joint name="belt_slide">
+        <command_interface name="velocity"/>
+        <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+        <state_interface name="velocity"><param name="initial_value">0.0</param></state_interface>
+      </joint>
+
     </ros2_control>
   </xacro:macro>
 

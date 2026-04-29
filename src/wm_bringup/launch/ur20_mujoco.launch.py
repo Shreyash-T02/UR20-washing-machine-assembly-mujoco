@@ -97,11 +97,23 @@ def generate_launch_description():
         output='log',
     )
 
+    # Kinematics nodes start after controllers are up (7 s gives controllers time to activate).
+    kinematics_nodes = TimerAction(
+        period=7.0,
+        actions=[
+            LogInfo(msg='Starting kinematics nodes...'),
+            Node(package='wm_kinematics', executable='fk_node',       output='screen'),
+            Node(package='wm_kinematics', executable='jacobian_node',  output='screen'),
+            Node(package='wm_kinematics', executable='ik_node',        output='screen'),
+        ],
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument('gui',  default_value='true',  description='Open MuJoCo viewer'),
         DeclareLaunchArgument('rviz', default_value='true',  description='Open RViz2'),
         robot_state_publisher,
         mujoco_node,
         spawn_controllers,
+        kinematics_nodes,
         rviz_node,
     ])

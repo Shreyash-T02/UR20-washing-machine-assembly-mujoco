@@ -24,6 +24,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'fk_node = wm_kinematics.fk_node:main',
+            'jacobian_node = wm_kinematics.jacobian_node:main',
+            'ik_node = wm_kinematics.ik_node:main',
         ],
     },
 )

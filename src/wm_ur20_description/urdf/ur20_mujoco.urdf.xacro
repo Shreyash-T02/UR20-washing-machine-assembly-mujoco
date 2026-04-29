@@ -10,6 +10,15 @@
   <!-- Fixed world base link -->
   <link name="world"/>
 
+  <!-- Conveyor belt link — dummy link so mujoco_system can find belt_slide in the URDF -->
+  <link name="belt_link"/>
+  <joint name="belt_slide" type="prismatic">
+    <parent link="world"/>
+    <child link="belt_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-100" upper="100" effort="2000" velocity="1.0"/>
+  </joint>
+
   <!-- Instantiate UR20 — generate_ros2_control_tag=false so we supply our own block -->
   <xacro:ur_robot
     name="ur20"

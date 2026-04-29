@@ -86,7 +86,7 @@ class IKNode(Node):
 
     def _publish_trajectory(self, q):
         traj = JointTrajectory()
-        traj.header.stamp = self.get_clock().now().to_msg()
+        # stamp=0 tells JTC "start immediately" (non-zero is treated as absolute time)
         traj.joint_names = JOINT_NAMES
         pt = JointTrajectoryPoint()
         pt.positions = q.tolist()

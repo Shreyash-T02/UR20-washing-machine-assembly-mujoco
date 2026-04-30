@@ -93,6 +93,7 @@
     <material name="belt_mat"      rgba="0.12 0.12 0.12 1" specular="0.20" shininess="0.20"/>
     <material name="blue_plastic"  rgba="0.10 0.10 0.80 1" specular="0.10" shininess="0.10"/>
     <material name="black_plastic" rgba="0.10 0.10 0.10 1" specular="0.10" shininess="0.10"/>
+    <material name="drum_cap_mat"  rgba="0.85 0.15 0.15 1" specular="0.20" shininess="0.30"/>
   </asset>
 
   <contact>
@@ -316,6 +317,20 @@
             contype="1" conaffinity="1"/>
     </body>
 
+    <!-- ════════════════════════════════════════
+         ASSEMBLY PART — washing-machine drum top cap
+         Starts at x = −0.9 m on the belt; Phase 6 state machine runs the belt
+         for 3 s at +0.3 m/s to slide it to x ≈ 0 (pick site), then stops.
+         diameter = 50 mm, height = 40 mm — grippable by the 2FG14 (range 24–75 mm).
+         ════════════════════════════════════════ -->
+    <body name="drum_cap" pos="-0.9 ${conv_cy} ${conv_h + 0.020}">
+      <freejoint/>
+      <geom name="drum_cap_geom" type="cylinder" size="0.025 0.020"
+            mass="2.0" material="drum_cap_mat"
+            friction="0.8 0.05 0.01" condim="4"
+            contype="1" conaffinity="1"/>
+    </body>
+
   </worldbody>
 
   <!-- ════════════════════════════════════════
@@ -348,12 +363,13 @@
            solref="0.02 1" solimp="0.9 0.95 0.001"/>
   </equality>
 
-  <!-- qpos order (depth-first): 6 arm joints, finger_left, finger_right, belt_slide = 9 values
+  <!-- qpos order (depth-first): 6 arm joints, finger_left, finger_right, belt_slide,
+                                  drum_cap freejoint (x y z qw qx qy qz) = 16 values
        ctrl  order (actuator):   6 arm,        belt_motor,  fingers               = 8 values
-       Gripper starts open (0.028 m); belt parked (0). -->
+       Gripper starts open (0.028 m); belt parked (0); drum_cap at pick-staging site. -->
   <keyframe>
     <key name="home"
-         qpos="0 -1.5708 0 0 0 0  0.028 0.028  0"
+         qpos="0 -1.5708 0 0 0 0  0.028 0.028  0  -0.9 -0.9 0.52 1 0 0 0"
          ctrl="0 -1.5708 0 0 0 0  0  0.028"/>
   </keyframe>
 

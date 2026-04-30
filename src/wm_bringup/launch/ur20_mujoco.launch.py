@@ -124,13 +124,31 @@ def generate_launch_description():
         ],
     )
 
+    # Assembly state machine starts 12 s after launch (controllers + kinematics must be up).
+    # Enable with:  ros2 launch wm_bringup ur20_mujoco.launch.py assembly:=true
+    assembly_node = TimerAction(
+        period=12.0,
+        actions=[
+            LogInfo(msg='Starting assembly state machine...'),
+            Node(
+                condition=IfCondition(LaunchConfiguration('assembly')),
+                package='wm_assembly_ctrl',
+                executable='assembly_node',
+                output='screen',
+            ),
+        ],
+    )
+
     return LaunchDescription([
-        DeclareLaunchArgument('gui',  default_value='true',  description='Open MuJoCo viewer'),
-        DeclareLaunchArgument('rviz', default_value='true',  description='Open RViz2'),
+        DeclareLaunchArgument('gui',      default_value='true',  description='Open MuJoCo viewer'),
+        DeclareLaunchArgument('rviz',     default_value='true',  description='Open RViz2'),
+        DeclareLaunchArgument('assembly', default_value='false',
+                              description='Run assembly state machine automatically'),
         robot_state_publisher,
         mujoco_node,
         spawn_controllers,
         spawn_gripper,
         kinematics_nodes,
+        assembly_node,
         rviz_node,
     ])

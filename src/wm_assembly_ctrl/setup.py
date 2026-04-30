@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'assembly_node = wm_assembly_ctrl.assembly_node:main',
         ],
     },
 )

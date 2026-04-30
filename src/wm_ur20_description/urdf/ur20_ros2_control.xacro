@@ -62,6 +62,13 @@
         <state_interface name="velocity"><param name="initial_value">0.0</param></state_interface>
       </joint>
 
+      <!-- 2FG14 gripper — position command on left finger; equality in MJCF drives right -->
+      <joint name="finger_left_slide">
+        <command_interface name="position"/>
+        <state_interface name="position"><param name="initial_value">0.028</param></state_interface>
+        <state_interface name="velocity"><param name="initial_value">0.0</param></state_interface>
+      </joint>
+
     </ros2_control>
   </xacro:macro>
 

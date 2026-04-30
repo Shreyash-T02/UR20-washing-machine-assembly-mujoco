@@ -86,6 +86,13 @@ def generate_launch_description():
                            '--controller-manager', '/controller_manager'],
                 output='screen',
             ),
+            Node(
+                package='controller_manager',
+                executable='spawner',
+                arguments=['gripper_position_controller',
+                           '--controller-manager', '/controller_manager'],
+                output='screen',
+            ),
         ],
     )
 

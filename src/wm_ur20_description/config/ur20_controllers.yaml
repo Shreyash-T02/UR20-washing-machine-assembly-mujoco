@@ -11,11 +11,20 @@ controller_manager:
     conveyor_velocity_controller:
       type: forward_command_controller/ForwardCommandController
 
+    gripper_position_controller:
+      type: forward_command_controller/ForwardCommandController
+
 conveyor_velocity_controller:
   ros__parameters:
     joints:
       - belt_slide
     interface_name: velocity
+
+gripper_position_controller:
+  ros__parameters:
+    joints:
+      - finger_left_slide
+    interface_name: position
 
 ur20_joint_trajectory_controller:
   ros__parameters:

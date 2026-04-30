@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!--
+  Standalone conveyor belt + drum-cap part — opens directly in MuJoCo viewer,
+  no xacro or ROS required.
+
+  All values are pre-resolved from scene.xacro:
+    conv_l=4.00  conv_w=0.90  conv_h=0.50
+    conv_leg_r=0.04  conv_frame_t=0.03
+    conv_cy = -(0.25 + 0.20 + 0.45) = -0.90
+
+  Belt control:  drag the "belt_motor" slider in the viewer (m/s, range -1 to +1).
+  The red drum-cap part will ride on the belt via friction.
+-->
+<mujoco model="conveyor_standalone">
+
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+
+  <visual>
+    <headlight ambient="0.35 0.35 0.35" diffuse="0.7 0.7 0.7" specular="0.5 0.5 0.5"/>
+    <quality shadowsize="2048"/>
+  </visual>
+
+  <asset>
+    <material name="floor_mat"  rgba="0.45 0.45 0.45 1" specular="0.10" shininess="0.10"/>
+    <material name="frame_mat"  rgba="0.35 0.35 0.40 1" specular="0.50" shininess="0.40"/>
+    <material name="belt_mat"   rgba="0.12 0.12 0.12 1" specular="0.20" shininess="0.20"/>
+    <material name="drum_mat"   rgba="0.85 0.15 0.15 1" specular="0.20" shininess="0.30"/>
+  </asset>
+
+  <worldbody>
+
+    <light name="key"  pos="2 -2 4"  dir="-0.4  0.4 -1" diffuse="0.8 0.8 0.8"    specular="0.4 0.4 0.4"  castshadow="true"/>
+    <light name="fill" pos="-3  2 3" dir=" 0.5 -0.3 -1" diffuse="0.35 0.35 0.35" specular="0.1 0.1 0.1"  castshadow="false"/>
+
+    <geom name="floor" type="plane" size="8 8 0.1" material="floor_mat" contype="1" conaffinity="1"/>
+
+    <!-- ── CONVEYOR FRAME ─────────────────────────────────────────────── -->
+    <!-- Support legs (4 corners).  cleg_h/2 = 0.235,  cleg_h = 0.47     -->
+    <geom name="conv_leg_xp_yn" type="cylinder"
+          pos=" 1.91 -1.29 0.235" size="0.04 0.235"
+          material="frame_mat" contype="1" conaffinity="1"/>
+    <geom name="conv_leg_xp_yp" type="cylinder"
+          pos=" 1.91 -0.51 0.235" size="0.04 0.235"
+          material="frame_mat" contype="1" conaffinity="1"/>
+    <geom name="conv_leg_xn_yn" type="cylinder"
+          pos="-1.91 -1.29 0.235" size="0.04 0.235"
+          material="frame_mat" contype="1" conaffinity="1"/>
+    <geom name="conv_leg_xn_yp" type="cylinder"
+          pos="-1.91 -0.51 0.235" size="0.04 0.235"
+          material="frame_mat" contype="1" conaffinity="1"/>
+
+    <!-- Side rails.  size = (half-length, half-thickness, half-thickness) -->
+    <geom name="conv_rail_yn" type="box"
+          pos="0 -1.335 0.485" size="2.0 0.015 0.015"
+          material="frame_mat" contype="1" conaffinity="1"/>
+    <geom name="conv_rail_yp" type="box"
+          pos="0 -0.465 0.485" size="2.0 0.015 0.015"
+          material="frame_mat" contype="1" conaffinity="1"/>
+
+    <!-- ── BELT SURFACE ──────────────────────────────────────────────── -->
+    <!-- Belt body slides in X; geom is 16 m long so it never runs out.   -->
+    <body name="belt_surface" pos="0 -0.90 0.50">
+      <joint name="belt_slide" type="slide" axis="1 0 0"
+             range="-100 100" damping="50"/>
+      <geom name="belt_geom" type="box"
+            size="16.0 0.42 0.005"
+            material="belt_mat"
+            friction="1.5 0.05 0.01"
+            condim="4"
+            contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- ── WORKPIECE — washing-machine drum top cap ──────────────────── -->
+    <!-- Red cylinder: diameter 50 mm, height 40 mm, mass 2 kg.           -->
+    <!-- Starts at x = -0.9 m; set belt_motor to +0.3 m/s to slide it    -->
+    <!-- to x ≈ 0 in ~3 seconds.                                           -->
+    <body name="drum_cap" pos="-0.9 -0.90 0.52">
+      <freejoint/>
+      <geom name="drum_cap_geom" type="cylinder" size="0.025 0.020"
+            mass="2.0" material="drum_mat"
+            friction="0.8 0.05 0.01" condim="4"
+            contype="1" conaffinity="1"/>
+    </body>
+
+  </worldbody>
+
+  <!-- ── ACTUATOR ─────────────────────────────────────────────────────── -->
+  <!-- Drag the belt_motor slider in the viewer to set belt speed (m/s).  -->
+  <!-- Positive = +X (moves drum cap from left to right in default view). -->
+  <actuator>
+    <velocity name="belt_motor" joint="belt_slide" kv="2000" ctrlrange="-1.0 1.0"/>
+  </actuator>
+
+  <!-- ── INITIAL STATE ─────────────────────────────────────────────────── -->
+  <!-- qpos: belt_slide(1) + drum_cap freejoint(7) = 8 values             -->
+  <!-- freejoint order: x y z  qw qx qy qz                                -->
+  <keyframe>
+    <key name="ready" qpos="0  -0.9 -0.90 0.52 1 0 0 0" ctrl="0"/>
+  </keyframe>
+
+</mujoco>

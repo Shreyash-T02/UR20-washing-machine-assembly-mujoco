@@ -62,9 +62,11 @@
         <state_interface name="velocity"><param name="initial_value">0.0</param></state_interface>
       </joint>
 
-      <!-- 2FG14 gripper — position command on left finger; equality in MJCF drives right -->
+      <!-- 2FG14 gripper — position command on left finger; equality in MJCF drives right.
+           velocity interface required so mujoco_ros2_control registers the position actuator. -->
       <joint name="finger_left_slide">
         <command_interface name="position"/>
+        <command_interface name="velocity"/>
         <state_interface name="position"><param name="initial_value">0.028</param></state_interface>
         <state_interface name="velocity"><param name="initial_value">0.0</param></state_interface>
       </joint>

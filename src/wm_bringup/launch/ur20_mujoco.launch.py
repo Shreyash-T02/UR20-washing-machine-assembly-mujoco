@@ -61,10 +61,12 @@ def generate_launch_description():
     )
 
     # 5-second delay lets the controller_manager finish initialising before spawners run.
+    # Arm + belt controllers spawn together; gripper spawns 3 s later so switch_controller
+    # calls don't collide — simultaneous activation of 4+ controllers causes RT-loop timeouts.
     spawn_controllers = TimerAction(
         period=5.0,
         actions=[
-            LogInfo(msg='Spawning controllers...'),
+            LogInfo(msg='Spawning arm and belt controllers...'),
             Node(
                 package='controller_manager',
                 executable='spawner',
@@ -86,6 +88,13 @@ def generate_launch_description():
                            '--controller-manager', '/controller_manager'],
                 output='screen',
             ),
+        ],
+    )
+
+    spawn_gripper = TimerAction(
+        period=9.0,
+        actions=[
+            LogInfo(msg='Spawning gripper controller...'),
             Node(
                 package='controller_manager',
                 executable='spawner',
@@ -121,6 +130,7 @@ def generate_launch_description():
         robot_state_publisher,
         mujoco_node,
         spawn_controllers,
+        spawn_gripper,
         kinematics_nodes,
         rviz_node,
     ])

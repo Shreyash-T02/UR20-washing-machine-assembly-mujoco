@@ -19,6 +19,15 @@
     <limit lower="-100" upper="100" effort="2000" velocity="1.0"/>
   </joint>
 
+  <!-- Gripper finger link — dummy link so mujoco_system can find finger_left_slide in the URDF -->
+  <link name="finger_left_link"/>
+  <joint name="finger_left_slide" type="prismatic">
+    <parent link="world"/>
+    <child link="finger_left_link"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="-0.04" upper="0.04" effort="100" velocity="0.5"/>
+  </joint>
+
   <!-- Instantiate UR20 — generate_ros2_control_tag=false so we supply our own block -->
   <xacro:ur_robot
     name="ur20"

@@ -17,10 +17,14 @@ def generate_launch_description():
     # ── Generate scene MJCF from xacro (synchronous — runs before any node starts) ──
     scene_xacro    = os.path.join(cell_share, 'mjcf', 'scene.xacro')
     mesh_dir       = os.path.join(ur20_share, 'meshes')
+    cell_mesh_dir  = os.path.join(cell_share, 'meshes')
     generated_mjcf = '/tmp/wm_assembly_scene.xml'
 
     subprocess.run(
-        ['xacro', scene_xacro, f'meshdir:={mesh_dir}', '-o', generated_mjcf],
+        ['xacro', scene_xacro,
+         f'meshdir:={mesh_dir}',
+         f'cell_meshdir:={cell_mesh_dir}',
+         '-o', generated_mjcf],
         check=True,
     )
     # Strip the xacro namespace declaration that MuJoCo's parser doesn't expect.

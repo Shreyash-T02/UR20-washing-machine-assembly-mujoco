@@ -13,6 +13,10 @@
   <xacro:arg name="meshdir"
     default="/ros2_ws/install/wm_ur20_description/share/wm_ur20_description/meshes"/>
 
+  <!-- Absolute path to wm_cell_description/meshes — injected by launch file -->
+  <xacro:arg name="cell_meshdir"
+    default="/ros2_ws/install/wm_cell_description/share/wm_cell_description/meshes"/>
+
   <!-- ══════════════════════════════════════════════════════════════════
        CONFIGURABLE DIMENSIONS
        ══════════════════════════════════════════════════════════════════ -->
@@ -22,8 +26,8 @@
   <xacro:property name="pillar_h"         value="0.90"/>  <!-- m — floor to robot base -->
 
   <!-- Work table (placed on the +Y side of the pillar) -->
-  <xacro:property name="table_l"     value="1.20"/>  <!-- m — full length along X -->
-  <xacro:property name="table_w"     value="0.60"/>  <!-- m — full depth  along Y -->
+  <xacro:property name="table_l"     value="1.60"/>  <!-- m — full length along X -->
+  <xacro:property name="table_w"     value="1.40"/>  <!-- m — full depth  along Y -->
   <xacro:property name="table_h"     value="0.90"/>  <!-- m — floor to table surface -->
   <xacro:property name="table_top_t" value="0.04"/>  <!-- m — tabletop thickness -->
   <xacro:property name="table_leg_r" value="0.03"/>  <!-- m — leg cylinder radius -->
@@ -39,7 +43,7 @@
        DERIVED LAYOUT  (computed — do not edit)
        ══════════════════════════════════════════════════════════════════ -->
 
-  <xacro:property name="table_cy" value="${pillar_half_side + 0.10 + table_w/2}"/>
+  <xacro:property name="table_cy" value="${pillar_half_side + 0.20 + table_w/2}"/>
   <xacro:property name="conv_cy"  value="${-(pillar_half_side + 0.20 + conv_w/2)}"/>
 
   <xacro:property name="tleg_ox" value="${table_l/2 - table_leg_r - 0.02}"/>
@@ -84,6 +88,20 @@
     <mesh name="gripper_base3_col"  file="collision/2FG14_basep3.STL"/>
     <mesh name="gripper_finger_col" file="collision/2FG14_gripper_finger.STL"/>
 
+    <!-- Washing-machine part meshes (STL coords are in metres — no scale needed) -->
+    <mesh name="kit_mesh"      file="$(arg cell_meshdir)/fixtures/assembly_kit.STL"/>
+    <mesh name="wm_shaft"      file="$(arg cell_meshdir)/parts/washingmachine_shaft_directdrive.STL"/>
+    <mesh name="wm_motor"      file="$(arg cell_meshdir)/parts/washingmachine_motorsubassem.STL"/>
+    <mesh name="wm_pump"       file="$(arg cell_meshdir)/parts/washingmachine_pump.STL"/>
+    <mesh name="wm_inverter"   file="$(arg cell_meshdir)/parts/washingmachine_invertercntrl.STL"/>
+    <mesh name="wm_counter"    file="$(arg cell_meshdir)/parts/washingmachine_counterweight.STL"/>
+    <mesh name="wm_jig"        file="$(arg cell_meshdir)/parts/washingmachine_assemblyjigfortrunion.STL"/>
+    <mesh name="wm_innerdrum"  file="$(arg cell_meshdir)/parts/washingmachine_innerdrum_col.STL"/>
+    <mesh name="wm_outerdrum"  file="$(arg cell_meshdir)/parts/washingmachine_outerdrum.STL"/>
+    <mesh name="wm_agitator"   file="$(arg cell_meshdir)/parts/washingmachine_agitator.STL"/>
+    <mesh name="wm_floor_pan"  file="$(arg cell_meshdir)/parts/washingmachine_floor.STL"/>
+    <mesh name="wm_trunion"    file="$(arg cell_meshdir)/parts/washingmachine_trunionwithpivotdome.STL"/>
+
     <material name="ur_metal"      rgba="0.27 0.27 0.27 1" specular="0.85" shininess="0.75" reflectance="0.10"/>
     <material name="ur_link"       rgba="0.33 0.33 0.33 1" specular="0.70" shininess="0.60" reflectance="0.05"/>
     <material name="floor_mat"     rgba="0.45 0.45 0.45 1" specular="0.10" shininess="0.10"/>
@@ -94,6 +112,10 @@
     <material name="blue_plastic"  rgba="0.10 0.10 0.80 1" specular="0.10" shininess="0.10"/>
     <material name="black_plastic" rgba="0.10 0.10 0.10 1" specular="0.10" shininess="0.10"/>
     <material name="drum_cap_mat"  rgba="0.85 0.15 0.15 1" specular="0.20" shininess="0.30"/>
+    <material name="wm_steel"      rgba="0.70 0.70 0.75 1" specular="0.80" shininess="0.70"/>
+    <material name="wm_plastic"    rgba="0.88 0.88 0.88 1" specular="0.30" shininess="0.40"/>
+    <material name="wm_kit"        rgba="0.78 0.68 0.48 1" specular="0.20" shininess="0.20"/>
+    <material name="wm_elec"       rgba="0.15 0.55 0.20 1" specular="0.20" shininess="0.30"/>
   </asset>
 
   <contact>
@@ -210,7 +232,7 @@
                         contype="0" conaffinity="0" density="5000"/>
                   <geom name="gripper_base3" pos="0 0 0.103" quat="0.707107 0 0 0.707107"
                         type="mesh" mesh="gripper_base3_col"
-                        group="0" material="black_plastic"
+                        group="0" material="ur_metal"
                         contype="0" conaffinity="0" density="5000"/>
 
                   <body name="finger_left" pos="0 -0.0025 0.1137" quat="1 0 0 0">
@@ -221,7 +243,7 @@
                           group="0" material="blue_plastic"
                           contype="0" conaffinity="0" density="5000"/>
                     <geom name="finger_left_tip" pos="0 -0.015 0.065" size="0.008 0.008 0.012"
-                          type="box" material="blue_plastic"
+                          type="box" group="3"
                           friction="1.5 0.05 0.01" contype="1" conaffinity="1"/>
                     <site name="finger_left_tip_site" pos="0 -0.015 0.069" size="0.005" rgba="1 0 0 1"/>
                   </body>
@@ -234,7 +256,7 @@
                           group="0" material="blue_plastic"
                           contype="0" conaffinity="0" density="5000"/>
                     <geom name="finger_right_tip" pos="0 -0.015 0.065" size="0.008 0.008 0.012"
-                          type="box" material="blue_plastic"
+                          type="box" group="3"
                           friction="1.5 0.05 0.01" contype="1" conaffinity="1"/>
                     <site name="finger_right_tip_site" pos="0 -0.015 0.069" size="0.005" rgba="0 1 0 1"/>
                   </body>
@@ -318,17 +340,107 @@
     </body>
 
     <!-- ════════════════════════════════════════
-         ASSEMBLY PART — washing-machine drum top cap
-         Starts at x = −0.9 m on the belt; Phase 6 state machine runs the belt
-         for 3 s at +0.3 m/s to slide it to x ≈ 0 (pick site), then stops.
-         diameter = 50 mm, height = 40 mm — grippable by the 2FG14 (range 24–75 mm).
+         ASSEMBLY FLOOR — WM floor pan, the assembly base on the conveyor.
+         Pre-positioned at x=0 (directly in front of robot); belt not used.
+         freejoint so the robot can push/place parts onto it.
+         mesh Z[−0.007, 0.050] → body_z = conv_h + 0.007 sets bottom at belt surface.
          ════════════════════════════════════════ -->
-    <body name="drum_cap" pos="-0.9 ${conv_cy} ${conv_h + 0.020}">
+    <body name="wm_floor_part" pos="0 ${conv_cy} ${conv_h + 0.007}">
       <freejoint/>
-      <geom name="drum_cap_geom" type="cylinder" size="0.025 0.020"
-            mass="2.0" material="drum_cap_mat"
+      <geom name="wm_floor_geom" type="mesh" mesh="wm_floor_pan"
+            quat="0.7071 0 0 -0.7071"
+            material="wm_plastic"
+            mass="3.0"
             friction="0.8 0.05 0.01" condim="4"
             contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- ════════════════════════════════════════
+         ASSEMBLY KIT — parts tray lying flat, LONG side facing robot.
+         Combined rotation (+90° X then +90° Z) = quat (0.5 0.5 0.5 0.5).
+           maps: Z→X (1.3 m now runs along table X — the long side faces robot)
+                 X→Y (1.1 m now runs along table depth Y)
+                 Y→Z (0.4 m becomes the height — kit lies flat)
+         Body origin:
+           kit bottom (Z_new = Y_old_min = 0) on table surface → body_z = table_h
+           kit centred in X: new X_ctr = −Z_old_ctr = −0.05 → body_x = +0.05
+           kit centred in Y: new Y_ctr = −X_old_ctr = +0.05 → body_y = table_cy−0.05
+         Kit world footprint: X∈[−0.65,0.65]  Y∈[0.60,1.70]  Z∈[0.90,1.30]
+         (table is 1.60×1.40 m → 15 cm clearance on all four sides)
+         ════════════════════════════════════════ -->
+    <body name="assembly_kit" pos="0.05 ${table_cy - 0.05} ${table_h}" quat="0.5 0.5 -0.5 -0.5">
+      <geom name="kit_geom" type="mesh" mesh="kit_mesh"
+            material="wm_kit"
+            contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- ════════════════════════════════════════
+         ASSEMBLY PARTS — 11 parts on kit surface, original grey materials, −90° Z rotation.
+         MuJoCo quat (w x y z) = 0.7071 0 0 -0.7071.  All parts visual only (contype=0).
+         After −90° Z rot: world_X=[bx+mesh_Ymin, bx+mesh_Ymax], world_Y=[by−mesh_Xmax, by−mesh_Xmin].
+         All footprints verified non-overlapping, within kit X∈[−0.600,0.700] Y∈[0.550,1.650].
+
+         Layout (rows, front-to-back):
+           FRONT  (y≈0.65–0.96): outerdrum(−0.307,0.807) | pump(0.044,0.650) | innerdrum(0.293,0.757) | shaft(0.530,0.800) | jig1(0.631,0.700)
+           MID    (y≈0.95–1.25): jig2(0.631,0.950) | agitator(0.293,1.110) | jig3(0.631,1.160)
+           BACK   (y≈1.33–1.60): trunion(−0.311,1.330) | motor(0.020,1.365) | counter(0.480,1.395) | inverter(0.200,1.500)
+         ════════════════════════════════════════ -->
+
+    <!-- SHAFT — grippable (⌀48 mm fits 2FG14); clear of innerdrum X-range -->
+    <body name="shaft_part"        pos=" 0.530  0.800 1.300" quat="0.7071 0 0 -0.7071">
+      <geom name="shaft_vis"         type="mesh" mesh="wm_shaft"    material="wm_steel"   contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- FRONT ROW — large drums at minimum Y, side-by-side in X -->
+    <body name="wm_outerdrum_part" pos="-0.307  0.807 1.387" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_outerdrum_geom" type="mesh" mesh="wm_outerdrum" material="wm_plastic" contype="0" conaffinity="0"/>
+    </body>
+    <body name="wm_innerdrum_part" pos=" 0.293  0.757 1.404" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_innerdrum_geom" type="mesh" mesh="wm_innerdrum" material="wm_steel"   contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- PUMP — fits in X-gap between drums (world_X=[−0.057,0.071]) -->
+    <body name="wm_pump_part"      pos=" 0.044  0.650 1.300" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_pump_geom"      type="mesh" mesh="wm_pump"     material="wm_plastic" contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- RIGHT COLUMN — three jigs stacked vertically at kit right edge -->
+    <body name="wm_jig_part_1"     pos=" 0.631  0.700 1.300" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_jig_geom_1"     type="mesh" mesh="wm_jig"      material="wm_plastic" contype="0" conaffinity="0"/>
+    </body>
+    <body name="wm_jig_part_2"     pos=" 0.631  0.950 1.300" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_jig_geom_2"     type="mesh" mesh="wm_jig"      material="wm_plastic" contype="0" conaffinity="0"/>
+    </body>
+    <body name="wm_jig_part_3"     pos=" 0.631  1.160 1.300" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_jig_geom_3"     type="mesh" mesh="wm_jig"      material="wm_plastic" contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- MID ROW — agitator above innerdrum -->
+    <body name="wm_agitator_part"  pos=" 0.293  1.110 1.395" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_agitator_geom"  type="mesh" mesh="wm_agitator" material="wm_plastic" contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- BACK ROW — large trunion left, motor+counter+inverter right -->
+    <body name="wm_trunion_part"   pos="-0.311  1.330 1.551" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_trunion_geom"   type="mesh" mesh="wm_trunion"  material="wm_steel"   contype="0" conaffinity="0"/>
+    </body>
+    <body name="wm_motor_part"     pos=" 0.020  1.365 1.331" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_motor_geom"     type="mesh" mesh="wm_motor"    material="wm_steel"   contype="0" conaffinity="0"/>
+    </body>
+    <body name="wm_counter_part"   pos=" 0.480  1.395 1.451" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_counter_geom"   type="mesh" mesh="wm_counter"  material="wm_steel"   contype="0" conaffinity="0"/>
+    </body>
+    <body name="wm_inverter_part"  pos=" 0.200  1.500 1.300" quat="0.7071 0 0 -0.7071">
+      <geom name="wm_inverter_geom"  type="mesh" mesh="wm_inverter" material="wm_elec"    contype="0" conaffinity="0"/>
+    </body>
+
+
+    <!-- Pick-site marker — visual cross on belt surface at x=0, y=conv_cy -->
+    <body name="pick_marker" pos="0.0 ${conv_cy} ${conv_h + 0.001}">
+      <geom name="pick_x" type="box" pos="0 0 0" size="0.040 0.005 0.001"
+            rgba="1 1 0 0.7" contype="0" conaffinity="0"/>
+      <geom name="pick_y" type="box" pos="0 0 0" size="0.005 0.040 0.001"
+            rgba="1 1 0 0.7" contype="0" conaffinity="0"/>
     </body>
 
   </worldbody>
@@ -364,12 +476,13 @@
   </equality>
 
   <!-- qpos order (depth-first): 6 arm joints, finger_left, finger_right, belt_slide,
-                                  drum_cap freejoint (x y z qw qx qy qz) = 16 values
+                                  wm_floor_part freejoint (x y z qw qx qy qz) = 16 values
        ctrl  order (actuator):   6 arm,        belt_motor,  fingers               = 8 values
-       Gripper starts open (0.028 m); belt parked (0); drum_cap at pick-staging site. -->
+       Gripper starts open (0.028 m); belt parked (0).
+       Floor pre-positioned at x=0 in front of robot; body_z = conv_h+0.007 = 0.507. -->
   <keyframe>
     <key name="home"
-         qpos="0 -1.5708 0 0 0 0  0.028 0.028  0  -0.9 -0.9 0.52 1 0 0 0"
+         qpos="0 -1.5708 0 0 0 0  0.028 0.028  0  0 -0.90 0.507 1 0 0 0"
          ctrl="0 -1.5708 0 0 0 0  0  0.028"/>
   </keyframe>
 

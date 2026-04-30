@@ -1,14 +1,26 @@
-"""Assembly state machine for washing-machine drum-cap pick-and-place.
+"""Assembly state machine — shaft pick-from-kit, place-on-floor.
+
+Scene layout:
+  WM floor pan on conveyor at x=0, y=conv_cy (assembly base, pre-positioned).
+  Shaft (⌀48 mm, only 2FG14-grippable part) on kit surface at world (0.38, 0.80, 1.30).
 
 Sequence (time-based transitions):
-  IDLE → STAGING (belt on 3 s) → SETTLING → PRE_PICK → DESCEND →
+  IDLE → STAGING (wait) → SETTLING → PRE_PICK → DESCEND →
   GRASPING → LIFTING → TRANSITING → PLACING → RELEASING →
   RETRACTING → HOMING → DONE
 
 All IK targets use DH frame coordinates (= world frame minus 0.9 m in Z).
 "Pointing-down" orientation: EE Z-axis = world [0,0,−1].
-  Quaternion (x=0.7071, y=0.7071, z=0, w=0) — analytically verified from
-  UR20 DH chain (R_06 at config [0,−π/2,π/2,−π/2,−π/2,0] has Z-col=[0,0,−1]).
+  Quaternion (x=0.7071, y=0.7071, z=0, w=0).
+
+Shaft on kit (world frame, kit top at z=1.30):
+  shaft at body (0.530, 0.800); bottom = 1.30, centre = 1.436, top = 1.572
+  Fingertip offset below EE = 0.1787 m
+  → DESCEND EE z_DH = (1.436 + 0.1787) − 0.90 = 0.715 m
+
+Floor on conveyor (world frame, belt at z=0.50, floor top at z=0.557):
+  shaft-on-floor centre = 0.557 + 0.136 = 0.693
+  → PLACE EE z_DH = (0.693 + 0.1787) − 0.90 = −0.028 m
 """
 
 import enum
@@ -22,31 +34,31 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 # ── gripper positions ───────────────────────────────────────────────────────
 GRIPPER_OPEN   = 0.028   # m — fully open
-GRIPPER_CLOSED = 0.013   # m — grips 50 mm cylinder (radius 25 mm)
+GRIPPER_CLOSED = 0.012   # m — grips 48 mm shaft (radius 24 mm)
 
 # ── belt velocity ───────────────────────────────────────────────────────────
-BELT_FORWARD = 0.30      # m/s — +X, slides drum_cap from x=−0.9 to x≈0
+BELT_FORWARD = 0.30      # m/s — +X, slides shaft from x=−0.9 to x≈0
 
 # ── DH-frame waypoints ── (world Z = DH Z + 0.9 m) ─────────────────────────
 # All use "pointing-down" orientation: quat (x, y, z, w) = (0.7071, 0.7071, 0, 0).
-# Finger tips end up 0.1787 m below the EE in world Z.
+# Fingertips end up 0.1787 m below the EE (wrist_3) in world Z.
 #
-#  PRE_PICK  : EE at z_DH=−0.05  → fingertips at z_world≈0.73  (above part)
-#  DESCEND   : EE at z_DH=−0.20  → fingertips at z_world≈0.52  (part centre)
-#  LIFT      : EE at z_DH=+0.20  → fingertips at z_world≈0.92  (clear of table)
-#  PRE_PLACE : EE at z_DH=+0.40  → fingertips at z_world≈1.12  (above table)
-#  PLACE     : EE at z_DH=+0.22  → fingertips at z_world≈0.94  (≈ table top + part)
-#  RETRACT   : EE at z_DH=+0.45  → fingertips clear
+#  PRE_PICK  : EE z_DH=+0.90  → above shaft on kit at (0.530, 0.800) (approach)
+#  DESCEND   : EE z_DH=+0.715 → grasp shaft centre on kit (z_world=1.615)
+#  LIFT      : EE z_DH=+1.05  → lift shaft clear of kit surface
+#  PRE_PLACE : EE z_DH=+0.30  → above floor on conveyor (z_world=1.20)
+#  PLACE     : EE z_DH=−0.028 → shaft bottom on floor top (z_world=0.872)
+#  RETRACT   : EE z_DH=+0.30  → pull clear of conveyor
 
 _DOWN_Q = (0.7071, 0.7071, 0.0, 0.0)   # (qx, qy, qz, qw)
 
 WAYPOINTS = {
-    'PRE_PICK':  ((0.00, -0.90, -0.05), _DOWN_Q),
-    'DESCEND':   ((0.00, -0.90, -0.20), _DOWN_Q),
-    'LIFT':      ((0.00, -0.90,  0.20), _DOWN_Q),
-    'PRE_PLACE': ((0.30,  0.65,  0.40), _DOWN_Q),
-    'PLACE':     ((0.30,  0.65,  0.22), _DOWN_Q),
-    'RETRACT':   ((0.30,  0.65,  0.45), _DOWN_Q),
+    'PRE_PICK':  ((0.530, 0.800, 0.90),  _DOWN_Q),  # above shaft on kit
+    'DESCEND':   ((0.530, 0.800, 0.715), _DOWN_Q),  # grasp shaft on kit surface
+    'LIFT':      ((0.530, 0.800, 1.05),  _DOWN_Q),  # lift shaft clear of kit
+    'PRE_PLACE': ((0.00, -0.90,  0.30),  _DOWN_Q),  # above floor on conveyor
+    'PLACE':     ((0.00, -0.90, -0.028), _DOWN_Q),  # place shaft on floor
+    'RETRACT':   ((0.00, -0.90,  0.30),  _DOWN_Q),  # pull clear of conveyor
 }
 
 HOME_Q = [0.0, -1.5708, 0.0, 0.0, 0.0, 0.0]
@@ -147,7 +159,7 @@ class AssemblyNode(Node):
             pass  # wait
 
         elif state == State.STAGING:
-            self._set_belt(BELT_FORWARD)
+            self._set_belt(0.0)  # floor pre-positioned at x=0; belt not needed
 
         elif state == State.SETTLING:
             self._set_belt(0.0)
